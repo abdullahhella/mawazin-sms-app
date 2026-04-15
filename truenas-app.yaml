@@ -1,56 +1,42 @@
 # ─────────────────────────────────────────────────────────────
-# TrueNAS SCALE Custom App — Mawazin SMS Parser
+# TrueNAS SCALE Custom App — Mawazin (SMS parser + Telegram bot)
 # ─────────────────────────────────────────────────────────────
 #
-# How to install (TrueNAS SCALE 24.10+ with Docker):
-#   1. Apps → Discover Apps → ⋮ (three-dot menu) → Install via YAML
-#      (Or: Apps → Custom App → paste YAML)
-#   2. Paste this entire file.
-#   3. Fill in the ENVIRONMENT VARIABLES below (replace YOUR_*).
-#   4. Deploy.
-#
+# Install: Apps → Discover Apps → ⋮ → Install via YAML
+# Replace YOUR_POOL in the volume path below.
 # ─────────────────────────────────────────────────────────────
 
 services:
+  # ─── SMS Parser service (port 8765) ───
   mawazin-sms:
     image: ghcr.io/abdullahhella/mawazin-sms-app:latest
     container_name: mawazin-sms
     restart: unless-stopped
 
     ports:
-      # Expose the API on host port 8765 (change if 8765 is busy on your NAS)
       - "8765:8000"
 
     environment:
-      # ─── Firefly III ───
       FIREFLY_URL: "http://192.168.9.55:30106"
-      FIREFLY_TOKEN: "YOUR_FIREFLY_TOKEN"
+      FIREFLY_TOKEN: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiZGNkYjAyZmNlMDI4YThkNzQwYjY5MGFlNTI5ODUxZGFiMzgzNjRhMzEyMWRlM2U1NDU3MjI0ZmY2Yjk4YmFiYWQyZTQ1ZTUwMjQ4NDFhMDQiLCJpYXQiOjE3NzYwOTQyODguNjMwODEyLCJuYmYiOjE3NzYwOTQyODguNjMwODE1LCJleHAiOjE4MDc2MzAyODguNDg4NTg4LCJzdWIiOiIxIiwic2NvcGVzIjpbXX0.Fnym1PP--TM3mN9Hk_2PpCJD_zec3lOszzlCKqSyuKDAyAGNVYZuWHHM_mFCmdZTiTK5fSN4_xE_ojw7aZOw98hZvF_sWsTw5wI8AswJMEU3z7-VoPbE8KddosynqBzJ9oUdTWQHG34HehBEp2nXkw8erTxHa9JBpjj1CDqV_4HVv4Wp6opERiZ5taNBRXZs9ms0MDJ9QwQnVGCR1trvPYTy32iz3eMjwIPqfLCRGVqElcbqQ0Opj2Mpt0EpNRg7W0zk2LqY16Y_q19xWOb1oUs6AZQHQUVWk_IBqM8aXJxv6w35HubRpORPPxr4OBTFeTVoXJ1CaOENroWzXrLuNGqxQzLe-hxBrVUoTBY-OTbbal6C8DnQSvjdDPkZOWFewi8pB-ffTZw9i_7Vg3Y3mLdcCyXBQXnnUhOgZeOu_AjXirJZszvze_dOLamdUEp9IbZMb7e3hGiQwMEfO20DeradXIhAHtGE6Z4u2zcNanUZpX648umpEbTewxg75vt77tLbKL9VJWh06U7_gP5KnFm4L7SB9aJP3f596-uKeYOrjA6RmtmVLJFSdM5YG4RJCqbiEiE3RI5tnXMrMtUkoehDNEcYpTBD31SAhUBAl9I_Bk8cHyc2lrJhf-b1tYOgic6S4ZEJrjVpBe8lWQg-8ZBKA52kxJnBdJqBLQt9Hkc"
 
-      # ─── LLM (Ollama OpenAI-compatible endpoint) ───
       LLM_URL: "http://192.168.9.55:30068/v1"
       LLM_MODEL: "gemma3:4b"
 
-      # ─── Telegram (for batch summaries) ───
-      TELEGRAM_BOT_TOKEN: "YOUR_TELEGRAM_BOT_TOKEN"
-      TELEGRAM_CHAT_ID: "YOUR_TELEGRAM_CHAT_ID"
+      TELEGRAM_BOT_TOKEN: "8456158570:AAG6THZ-fsN0ZEQcBmKZSvKrHIkx7w4UFYs"
+      TELEGRAM_CHAT_ID: ""
 
-      # ─── Security — secret for the iOS Shortcut ingest endpoint ───
-      INGEST_API_KEY: "GENERATE_A_LONG_RANDOM_STRING"
+      INGEST_API_KEY: "change-me-to-a-long-random-string"
 
-      # ─── Batch config ───
       BATCH_INTERVAL_HOURS: "3"
       DEDUP_WINDOW_DAYS: "7"
       FALLBACK_ACCOUNT_NAME: ""
 
-      # ─── Storage ───
       DB_PATH: "/data/mawazin.db"
       TZ: "Asia/Riyadh"
 
     volumes:
-      # Persist SQLite + card mappings across container restarts.
-      # TrueNAS: create a dataset at /mnt/YOUR_POOL/apps/mawazin-sms/data
-      # and bind it here.
-      - /mnt/YOUR_POOL/apps/mawazin-sms/data:/data
+      - /mnt/YOUR_POOL/apps/mawazin/sms-data:/data
 
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
@@ -58,3 +44,27 @@ services:
       timeout: 3s
       retries: 3
       start_period: 10s
+
+  # ─── Telegram Bot service ───
+  mawazin-bot:
+    image: ghcr.io/abdullahhella/mawazin-bot:latest
+    container_name: mawazin-bot
+    restart: unless-stopped
+
+    environment:
+      TELEGRAM_BOT_TOKEN: "8456158570:AAG6THZ-fsN0ZEQcBmKZSvKrHIkx7w4UFYs"
+      ALLOWED_USERS: ""
+
+      FIREFLY_URL: "http://192.168.9.55:30106"
+      FIREFLY_TOKEN: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiZGNkYjAyZmNlMDI4YThkNzQwYjY5MGFlNTI5ODUxZGFiMzgzNjRhMzEyMWRlM2U1NDU3MjI0ZmY2Yjk4YmFiYWQyZTQ1ZTUwMjQ4NDFhMDQiLCJpYXQiOjE3NzYwOTQyODguNjMwODEyLCJuYmYiOjE3NzYwOTQyODguNjMwODE1LCJleHAiOjE4MDc2MzAyODguNDg4NTg4LCJzdWIiOiIxIiwic2NvcGVzIjpbXX0.Fnym1PP--TM3mN9Hk_2PpCJD_zec3lOszzlCKqSyuKDAyAGNVYZuWHHM_mFCmdZTiTK5fSN4_xE_ojw7aZOw98hZvF_sWsTw5wI8AswJMEU3z7-VoPbE8KddosynqBzJ9oUdTWQHG34HehBEp2nXkw8erTxHa9JBpjj1CDqV_4HVv4Wp6opERiZ5taNBRXZs9ms0MDJ9QwQnVGCR1trvPYTy32iz3eMjwIPqfLCRGVqElcbqQ0Opj2Mpt0EpNRg7W0zk2LqY16Y_q19xWOb1oUs6AZQHQUVWk_IBqM8aXJxv6w35HubRpORPPxr4OBTFeTVoXJ1CaOENroWzXrLuNGqxQzLe-hxBrVUoTBY-OTbbal6C8DnQSvjdDPkZOWFewi8pB-ffTZw9i_7Vg3Y3mLdcCyXBQXnnUhOgZeOu_AjXirJZszvze_dOLamdUEp9IbZMb7e3hGiQwMEfO20DeradXIhAHtGE6Z4u2zcNanUZpX648umpEbTewxg75vt77tLbKL9VJWh06U7_gP5KnFm4L7SB9aJP3f596-uKeYOrjA6RmtmVLJFSdM5YG4RJCqbiEiE3RI5tnXMrMtUkoehDNEcYpTBD31SAhUBAl9I_Bk8cHyc2lrJhf-b1tYOgic6S4ZEJrjVpBe8lWQg-8ZBKA52kxJnBdJqBLQt9Hkc"
+
+      LLM_URL: "http://192.168.9.55:30068/v1"
+      LLM_MODEL: "gemma3:4b"
+
+      WHISPER_URL: "http://192.168.9.55:30069/v1"
+      WHISPER_MODEL: "Systran/faster-whisper-small"
+
+      MATCH_WINDOW_DAYS: "3"
+      CONFIDENCE_THRESHOLD: "0.8"
+
+      TZ: "Asia/Riyadh"
