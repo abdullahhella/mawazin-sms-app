@@ -1,0 +1,60 @@
+# ─────────────────────────────────────────────────────────────
+# TrueNAS SCALE Custom App — Mawazin SMS Parser
+# ─────────────────────────────────────────────────────────────
+#
+# How to install (TrueNAS SCALE 24.10+ with Docker):
+#   1. Apps → Discover Apps → ⋮ (three-dot menu) → Install via YAML
+#      (Or: Apps → Custom App → paste YAML)
+#   2. Paste this entire file.
+#   3. Fill in the ENVIRONMENT VARIABLES below (replace YOUR_*).
+#   4. Deploy.
+#
+# ─────────────────────────────────────────────────────────────
+
+services:
+  mawazin-sms:
+    image: ghcr.io/abdullahhella/mawazin-sms:latest
+    container_name: mawazin-sms
+    restart: unless-stopped
+
+    ports:
+      # Expose the API on host port 8765 (change if 8765 is busy on your NAS)
+      - "8765:8000"
+
+    environment:
+      # ─── Firefly III ───
+      FIREFLY_URL: "http://192.168.9.55:30106"
+      FIREFLY_TOKEN: "YOUR_FIREFLY_TOKEN"
+
+      # ─── LLM (Ollama OpenAI-compatible endpoint) ───
+      LLM_URL: "http://192.168.9.55:30068/v1"
+      LLM_MODEL: "gemma3:4b"
+
+      # ─── Telegram (for batch summaries) ───
+      TELEGRAM_BOT_TOKEN: "YOUR_TELEGRAM_BOT_TOKEN"
+      TELEGRAM_CHAT_ID: "YOUR_TELEGRAM_CHAT_ID"
+
+      # ─── Security — secret for the iOS Shortcut ingest endpoint ───
+      INGEST_API_KEY: "GENERATE_A_LONG_RANDOM_STRING"
+
+      # ─── Batch config ───
+      BATCH_INTERVAL_HOURS: "3"
+      DEDUP_WINDOW_DAYS: "7"
+      FALLBACK_ACCOUNT_NAME: ""
+
+      # ─── Storage ───
+      DB_PATH: "/data/mawazin.db"
+      TZ: "Asia/Riyadh"
+
+    volumes:
+      # Persist SQLite + card mappings across container restarts.
+      # TrueNAS: create a dataset at /mnt/YOUR_POOL/apps/mawazin-sms/data
+      # and bind it here.
+      - /mnt/YOUR_POOL/apps/mawazin-sms/data:/data
+
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
