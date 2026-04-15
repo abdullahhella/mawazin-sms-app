@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   mawazin-sms:
-    image: ghcr.io/abdullahhella/mawazin-sms:latest
+    image: ghcr.io/abdullahhella/mawazin-sms-app:latest
     # Or build from source:
     # build: .
     container_name: mawazin-sms
@@ -10,31 +10,48 @@ services:
     ports:
       - "8000:8000"
     environment:
-      # --- Firefly III ---
       FIREFLY_URL: "${FIREFLY_URL}"
       FIREFLY_TOKEN: "${FIREFLY_TOKEN}"
-
-      # --- LLM (Gemma via Ollama OpenAI-compatible endpoint) ---
       LLM_URL: "${LLM_URL}"
       LLM_MODEL: "${LLM_MODEL:-gemma3:4b}"
-
-      # --- Telegram (for batch summaries) ---
       TELEGRAM_BOT_TOKEN: "${TELEGRAM_BOT_TOKEN}"
       TELEGRAM_CHAT_ID: "${TELEGRAM_CHAT_ID}"
-
-      # --- Auth ---
       INGEST_API_KEY: "${INGEST_API_KEY}"
-
-      # --- Batch config ---
       BATCH_INTERVAL_HOURS: "3"
       DEDUP_WINDOW_DAYS: "7"
       FALLBACK_ACCOUNT_NAME: ""
-
-      # --- Storage ---
       DB_PATH: "/data/mawazin.db"
-
     volumes:
       - mawazin_data:/data
+
+  mawazin-bot:
+    image: ghcr.io/abdullahhella/mawazin-bot:latest
+    container_name: mawazin-bot
+    restart: unless-stopped
+    environment:
+      TELEGRAM_BOT_TOKEN: "${TELEGRAM_BOT_TOKEN}"
+      ALLOWED_USERS: "${ALLOWED_USERS:-}"
+      FIREFLY_URL: "${FIREFLY_URL}"
+      FIREFLY_TOKEN: "${FIREFLY_TOKEN}"
+      LLM_URL: "${LLM_URL}"
+      LLM_MODEL: "${LLM_MODEL:-gemma3:4b}"
+      WHISPER_URL: "${WHISPER_URL:-http://localhost:9000/v1}"
+      WHISPER_MODEL: "${WHISPER_MODEL:-Systran/faster-whisper-small}"
+
+  mawazin-dashboard:
+    image: ghcr.io/abdullahhella/mawazin-dashboard:latest
+    container_name: mawazin-dashboard
+    restart: unless-stopped
+    depends_on:
+      - mawazin-sms
+    ports:
+      - "3100:3000"
+    environment:
+      FIREFLY_URL: "${FIREFLY_URL}"
+      FIREFLY_TOKEN: "${FIREFLY_TOKEN}"
+      SMS_PARSER_URL: "http://mawazin-sms:8000"
+      SMS_PARSER_API_KEY: "${INGEST_API_KEY}"
+      MOCK_MODE: "${MOCK_MODE:-false}"
 
 volumes:
   mawazin_data:

@@ -29,6 +29,10 @@ jobs:
             dockerfile: bot/Dockerfile
             context: .
             image: mawazin-bot
+          - name: dashboard
+            dockerfile: dashboard/Dockerfile
+            context: dashboard
+            image: mawazin-dashboard
 
     steps:
       - name: Checkout

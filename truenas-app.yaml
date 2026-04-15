@@ -68,3 +68,36 @@ services:
       CONFIDENCE_THRESHOLD: "0.8"
 
       TZ: "Asia/Riyadh"
+
+  # ─── Dashboard (Next.js UI on port 3100) ───
+  mawazin-dashboard:
+    image: ghcr.io/abdullahhella/mawazin-dashboard:latest
+    container_name: mawazin-dashboard
+    restart: unless-stopped
+
+    ports:
+      - "3100:3000"
+
+    depends_on:
+      - mawazin-sms
+
+    environment:
+      # Firefly III (server-side proxy target)
+      FIREFLY_URL: "http://192.168.9.55:30106"
+      FIREFLY_TOKEN: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiZGNkYjAyZmNlMDI4YThkNzQwYjY5MGFlNTI5ODUxZGFiMzgzNjRhMzEyMWRlM2U1NDU3MjI0ZmY2Yjk4YmFiYWQyZTQ1ZTUwMjQ4NDFhMDQiLCJpYXQiOjE3NzYwOTQyODguNjMwODEyLCJuYmYiOjE3NzYwOTQyODguNjMwODE1LCJleHAiOjE4MDc2MzAyODguNDg4NTg4LCJzdWIiOiIxIiwic2NvcGVzIjpbXX0.Fnym1PP--TM3mN9Hk_2PpCJD_zec3lOszzlCKqSyuKDAyAGNVYZuWHHM_mFCmdZTiTK5fSN4_xE_ojw7aZOw98hZvF_sWsTw5wI8AswJMEU3z7-VoPbE8KddosynqBzJ9oUdTWQHG34HehBEp2nXkw8erTxHa9JBpjj1CDqV_4HVv4Wp6opERiZ5taNBRXZs9ms0MDJ9QwQnVGCR1trvPYTy32iz3eMjwIPqfLCRGVqElcbqQ0Opj2Mpt0EpNRg7W0zk2LqY16Y_q19xWOb1oUs6AZQHQUVWk_IBqM8aXJxv6w35HubRpORPPxr4OBTFeTVoXJ1CaOENroWzXrLuNGqxQzLe-hxBrVUoTBY-OTbbal6C8DnQSvjdDPkZOWFewi8pB-ffTZw9i_7Vg3Y3mLdcCyXBQXnnUhOgZeOu_AjXirJZszvze_dOLamdUEp9IbZMb7e3hGiQwMEfO20DeradXIhAHtGE6Z4u2zcNanUZpX648umpEbTewxg75vt77tLbKL9VJWh06U7_gP5KnFm4L7SB9aJP3f596-uKeYOrjA6RmtmVLJFSdM5YG4RJCqbiEiE3RI5tnXMrMtUkoehDNEcYpTBD31SAhUBAl9I_Bk8cHyc2lrJhf-b1tYOgic6S4ZEJrjVpBe8lWQg-8ZBKA52kxJnBdJqBLQt9Hkc"
+
+      # SMS parser service (internal Docker hostname)
+      SMS_PARSER_URL: "http://mawazin-sms:8000"
+      SMS_PARSER_API_KEY: "change-me-to-a-long-random-string"
+
+      # Flip to "false" to use real upstream services
+      MOCK_MODE: "false"
+
+      TZ: "Asia/Riyadh"
+
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:3000/ || exit 1"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
