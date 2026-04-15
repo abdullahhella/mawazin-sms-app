@@ -13,7 +13,7 @@
 
 services:
   mawazin-sms:
-    image: ghcr.io/abdullahhella/mawazin-sms:latest
+    image: ghcr.io/abdullahhella/mawazin-sms-app:latest
     container_name: mawazin-sms
     restart: unless-stopped
 
